@@ -1,0 +1,81 @@
+$fa-font-path: "~@fortawesome/fontawesome-free/webfonts/";
+@import '~@fortawesome/fontawesome-free/scss/fontawesome.scss';
+@import "~@fortawesome/fontawesome-free/scss/solid.scss";
+@import "~@fortawesome/fontawesome-free/scss/regular.scss";
+@import "~@fortawesome/fontawesome-free/scss/brands.scss";
+
+@import '~bulma/bulma.sass';
+
+html {
+  background-color: transparent;
+  overflow-y: hidden;
+}
+
+// $time-font: 'Cascadia Code', 'D-DIN Condensed';
+// $time-font-size: 7rem;
+$time-font: 'D-DIN Condensed';
+$time-font-size: 8rem;
+
+
+::placeholder {
+  font-family: $time-font;
+  font-size: 6rem;
+  text-align: center;
+  // text-align: right;
+  padding-right: 2rem;
+	font-weight: 300;
+}
+
+body {
+  font-family: $time-font;
+  font-weight: 900;
+  background-color: #2A2C39;
+  color: white;
+}
+
+.time-input {
+  font-family: $time-font;
+  font-size: $time-font-size;
+  font-weight: 900;
+  height: 8rem;
+  background: transparent;
+  padding-left: 0 !important;
+
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+.time-input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+.title {
+  font-family: 'Cascadia Code', 'D-DIN Regular', 'Consolas', monospace;
+  font-size: 3rem !important;
+  color: #FF4056;
+  text-align: center;
+}
+
+.title-results {
+  font-size: 3rem !important;
+}
+
+.display-time {
+  font-size: $time-font-size;
+  font-weight: 900;
+}
+
+.display-time-sep {
+  font-size: 6rem;
+  font-weight: 100;
+  padding-left: 3rem;
+  padding-right: 3rem;
+  line-height: 1.78;
+}
+
+.display-result {
+  font-size: 5rem;
+}
