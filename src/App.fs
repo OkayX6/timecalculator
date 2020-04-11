@@ -1,13 +1,19 @@
 module App.View
 
 open System
+open Browser.Dom
+open Browser.Types
 open Elmish
+open Fable.Core
 open Fable.React
 open Fable.React.Props
 open Fulma
-open Browser.Types
-open Browser.Dom
 open TimeFormat
+
+
+/// Uses Fable's Emit to call JavaScript directly and play sounds
+[<Emit("(new Audio($0)).play();")>]
+let play (fileName: string) = jsNative
 
 
 type Op = Diff | Sum
@@ -34,15 +40,21 @@ type Msg =
     | GoToPreviousForm
     | GoToNextForm
 
+
 let init _ =
     { CurrentForm = 0
       Timestamps = [| "", Empty |]
       Operation = None
       ShowResult = false }, Cmd.none
 
+
+let playKeyPress () = play "assets/keypress.wav"
+
 let private update msg model =
     match msg with
-    | ChangeValue newValue -> replaceValueAt model model.CurrentForm newValue, Cmd.none
+    | ChangeValue newValue ->
+      playKeyPress ()
+      replaceValueAt model model.CurrentForm newValue, Cmd.none
     | GoToPreviousForm -> { model with CurrentForm = model.CurrentForm - 1 }, Cmd.none
     | GoToNextForm -> { model with CurrentForm = model.CurrentForm + 1 }, Cmd.none
     | CreateForm op ->
@@ -199,7 +211,8 @@ let documentEventListener initial =
         if (e.target :?> HTMLElement).nodeName.ToUpperInvariant() = "BODY" then
           e.preventDefault()
           dispatch DocumentBackspace
-        else ()
+        else
+          ()
       elif ke.key = "Tab" then e.preventDefault()
     )
   Cmd.ofSub sub
@@ -231,6 +244,7 @@ let keyListener initial =
   let sub dispatch =
     document.addEventListener("keydown", fun e ->
       let ke: KeyboardEvent = downcast e
+
       if ke.key = "Tab" then e.preventDefault()
       elif ke.key = "Backspace" then dispatch Backspace
       else
