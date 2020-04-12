@@ -6,6 +6,31 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts/";
 
 @import '~bulma/bulma.sass';
 
+
+@font-face {
+  font-family: 'Cascadia Code';
+  src: url('cascadiamono-webfont.woff2') format('woff2'),
+       url('cascadiamono-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'D-DIN Condensed';
+  src: url('d-dincondensed-webfont.woff2') format('woff2'),
+       url('d-dincondensed-webfont.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'D-DIN Condensed';
+  src: url('d-dincondensed-bold-webfont.woff2') format('woff2'),
+       url('d-dincondensed-bold-webfont.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+}
+
 html {
   background-color: transparent;
   overflow-y: hidden;
@@ -16,66 +41,59 @@ html {
 $time-font: 'D-DIN Condensed';
 $time-font-size: 8rem;
 
+// Main theme
+$bg-color: #F2F1EF;
+$primary-color: #ed4944;
+$accent-color: #202A33;
 
-::placeholder {
-  font-family: $time-font;
-  font-size: 6rem;
-  text-align: center;
-  // text-align: right;
-  padding-right: 2rem;
-	font-weight: 300;
-}
+// Vueling 1 theme
+// $bg-color: #FFCC01;
+// $primary-color: #4D4D4D;
+// $accent-color: white;
+
+// Vueling 2 theme
+// $bg-color: #EEEEEE;
+// $primary-color: #4D4D4D;
+// $accent-color: #FFCC01;
+
 
 body {
   font-family: $time-font;
-  font-weight: 900;
-  background-color: #2A2C39;
-  color: white;
-}
-
-.time-input {
-  font-family: $time-font;
-  font-size: $time-font-size;
-  font-weight: 900;
-  height: 8rem;
-  background: transparent;
-  padding-left: 0 !important;
-
-  outline: none;
-  border: none;
-  box-shadow: none;
-}
-
-.time-input:focus {
-  outline: none;
-  border: none;
-  box-shadow: none;
+  background-color: $bg-color;
+  color: $primary-color;
 }
 
 .title {
   font-family: 'Cascadia Code', 'D-DIN Regular', 'Consolas', monospace;
-  font-size: 3rem !important;
-  color: #FF4056;
+  font-size: 2.75rem !important;
+  color: $accent-color;
   text-align: center;
 }
 
 .title-results {
-  font-size: 3rem !important;
+  font-size: 2.75rem !important;
 }
 
 .display-time {
   font-size: $time-font-size;
-  font-weight: 900;
+  font-weight: bold;
 }
 
 .display-time-sep {
   font-size: 6rem;
-  font-weight: 100;
-  padding-left: 3rem;
-  padding-right: 3rem;
+  font-weight: normal;
+  padding-left: 2rem;
+  padding-right: 2rem;
   line-height: 1.78;
+  color: $accent-color;
+}
+
+.frozen {
+  color: $accent-color;
 }
 
 .display-result {
-  font-size: 5rem;
+  // font-size: 5rem;
+  font-weight: bold;
+  // color: $accent-color;
 }

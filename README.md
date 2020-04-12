@@ -1,6 +1,9 @@
-# Fulma minimal template
+## TODO
 
-This template setup a minimal application using [Fable](http://fable.io/), [Elmish](https://fable-elmish.github.io/) and [Fulma](https://mangelmaxime.github.io/Fulma/).
+- [ ] Typed.JS animation (http://mattboldt.github.io/typed.js/)
+- [ ] Auto font resize
+- [ ] Get rid of Fulma?
+
 
 ## How to use ?
 

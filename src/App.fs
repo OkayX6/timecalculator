@@ -6,7 +6,6 @@ open Browser.Types
 open Elmish
 open Fable.Core
 open Fable.React
-open Fable.React.Props
 open Fulma
 open TimeFormat
 
@@ -18,252 +17,223 @@ let play (fileName: string) = jsNative
 
 type Op = Diff | Sum
 type Model =
-    { CurrentForm: int
-      Timestamps: (string * TimeFormat) []
-      Operation: Option<Op>
-      ShowResult: bool }
-    member x.FormCount = x.Timestamps.Length
+  { HasInitialState: bool
+    CurrentForm: int
+    CursorPos: int
+    Timestamps: (string * TimeFormat) []
+    Operation: Option<Op>
+    ShowResult: bool }
+  member x.FormCount = x.Timestamps.Length
+  member x.CurrentTimestamp = x.Timestamps.[x.CurrentForm]
 
 
-let replaceValueAt model i value =
-    let updatedArray = Array.copy model.Timestamps
+let replaceValueAt array i value =
+    let updatedArray = Array.copy array
     updatedArray.[i] <- value
-    { model with Timestamps = updatedArray }
+    updatedArray
 
+
+type CharMsg =
+  | HourSep
+  | Digit of char
+  | Left
+  | Right
+  | Plus
+  | Tab
+  | Space
+  | Backspace
+  | Enter
+  member x.StringRepr =
+    match x with
+    | HourSep -> "h"
+    | Digit c -> string c
+    | _ -> ""
 
 type Msg =
-    | ChangeValue of (string * TimeFormat)
-    | CreateForm of Op
-    | ShowResult of bool
-    | DocumentBackspace
-    | RemoveCurrentForm
-    | GoToPreviousForm
-    | GoToNextForm
+  | DisableInitialState
+  | ChangeValue of (string * TimeFormat) * cursorPosDiff:int
+  | CreateForm of Op
+  | RemoveCurrentForm
+  | GoToPreviousForm
+  | GoToNextForm
+  | ShowResult of bool
 
 
 let init _ =
-    { CurrentForm = 0
-      Timestamps = [| "", Empty |]
-      Operation = None
-      ShowResult = false }, Cmd.none
+  { HasInitialState = true
+    CurrentForm = 0
+    CursorPos = 0
+    Timestamps = [| "", Empty |]
+    Operation = None
+    ShowResult = false }, Cmd.none
 
 
 let playKeyPress () = play "assets/keypress.wav"
 
-let private update msg model =
-    match msg with
-    | ChangeValue newValue ->
+
+let convertToMsg (model: Model) msg =
+  match msg with
+  | (HourSep | Digit _) as c ->
+      let str, _ = model.CurrentTimestamp
+      let newStr = str + c.StringRepr
+      match validateTime newStr with
+      | Some format -> ChangeValue ((newStr, format), 1) |> Some
+      | None -> None
+  | Left | Right -> None
+  | Backspace when model.HasInitialState -> DisableInitialState |> Some
+  | Backspace when model.ShowResult -> ShowResult false |> Some
+  | Backspace when snd model.CurrentTimestamp = Empty && model.CurrentForm = 1 ->
+      Some RemoveCurrentForm
+  | Backspace ->
+      let str, _ = model.CurrentTimestamp
+      let cpos = model.CursorPos
+      let newStr = str.[0..cpos-2] + str.Substring(cpos)
+
+      if cpos > 0 then
+        match validateTime newStr with
+        | Some format -> ChangeValue ((newStr, format), -1) |> Some
+        | None -> None
+      else None
+  | Tab | Enter when model.CurrentForm = 0 -> CreateForm Diff |> Some
+  | Plus when model.CurrentForm = 0 -> CreateForm Sum |> Some
+  | Tab | Enter when model.CurrentForm = 1 -> Some <| ShowResult true
+  | _ -> None
+
+let private update charMsg (model: Model) =
+  let res =
+    convertToMsg model charMsg
+    |> Option.map (fun msg ->
       playKeyPress ()
-      replaceValueAt model model.CurrentForm newValue, Cmd.none
-    | GoToPreviousForm -> { model with CurrentForm = model.CurrentForm - 1 }, Cmd.none
-    | GoToNextForm -> { model with CurrentForm = model.CurrentForm + 1 }, Cmd.none
-    | CreateForm op ->
+      match msg with
+      | DisableInitialState -> { model with HasInitialState = false }
+      | ChangeValue(newTs, cursorPosDiff) ->
+          { model with
+              HasInitialState = false
+              Timestamps = replaceValueAt model.Timestamps model.CurrentForm newTs
+              CursorPos = model.CursorPos + cursorPosDiff }
+      | CreateForm op ->
         { model with
-            CurrentForm = 1
-            Timestamps = Array.append model.Timestamps [| "", Empty |]
-            Operation = Some op }, Cmd.none
-    | ShowResult value -> { model with ShowResult = value }, Cmd.none
-    | RemoveCurrentForm ->
-        { model with
-            CurrentForm = model.CurrentForm - 1
-            Timestamps = Array.sub model.Timestamps 0 (model.Timestamps.Length - 1)
-            Operation = None
-            ShowResult = false }, Cmd.none
-    | DocumentBackspace -> { model with ShowResult = false }, Cmd.none
+            Operation = Some op; CurrentForm = 1; CursorPos = 0
+            Timestamps = Array.append model.Timestamps [| "", Empty |] }
+      | GoToPreviousForm -> { model with CurrentForm = model.CurrentForm - 1; CursorPos = 0 }
+      | GoToNextForm -> { model with CurrentForm = model.CurrentForm + 1; CursorPos = 0 }
+      | ShowResult value -> { model with ShowResult = value }
+      | RemoveCurrentForm ->
+          let newIdx = model.CurrentForm-1
+          { model with
+              CurrentForm = newIdx;
+              CursorPos = fst model.Timestamps.[newIdx] |> String.length
+              Timestamps = Array.sub model.Timestamps 0 (model.Timestamps.Length - 1)
+              Operation = None; ShowResult = false }
+    )
+    |> Option.defaultValue model
+
+  res, Cmd.none
 
 
-let handleKeyDownInInput model dispatch (ev: KeyboardEvent) =
-  let idx, elt = model.CurrentForm, ev.target :?> HTMLInputElement
-  let inputValue, _ = model.Timestamps.[idx]
+let private spanClass classNames txt =
+  Text.span [CustomClass classNames] [str txt]
 
-  match ev.key with
-  | "+" when idx = 0 -> dispatch (CreateForm Sum)
-  | "Tab" | "Enter" ->
-    ev.preventDefault()
-    if idx = 0 then dispatch (CreateForm Diff)
-    elif idx = 1 then dispatch (ShowResult true)
-  | "Backspace" ->
-    dispatch (ShowResult false)
-    if inputValue |> String.IsNullOrWhiteSpace && model.CurrentForm > 0 then
-      ev.preventDefault()
-      dispatch RemoveCurrentForm
-  | "ArrowLeft" when elt.selectionStart = 0 && model.CurrentForm > 0 ->
-    ev.preventDefault()
-    dispatch GoToPreviousForm
-  | "ArrowRight" when elt.selectionEnd = inputValue.Length && model.CurrentForm = 0 && model.FormCount >= 2 ->
-    dispatch GoToNextForm
-  | _ -> ()
-
-
-let timeInput idx model dispatch =
-    let hasFocus = idx = model.CurrentForm
-    let inputValue, _ = model.Timestamps.[idx]
-
-    if hasFocus && not model.ShowResult then
-      Control.p []
-        [ Input.text
-            [ Input.Props
-                [ Style [
-                    if idx = 0 && inputValue |> String.IsNullOrEmpty then
-                      TextAlign TextAlignOptions.Right
-                    elif idx = 0 then
-                      TextAlign TextAlignOptions.Center
-                    else
-                      TextAlign TextAlignOptions.Left
-
-                    Padding "1rem" ]
-                  if hasFocus then AutoFocus true
-                  OnKeyDown (handleKeyDownInInput model dispatch) ]
-              Input.OnChange(fun ev ->
-                  match validateTime ev.Value with
-                  | Some format -> dispatch (ChangeValue(ev.Value, format))
-                  | None -> ())
-              if idx = 0 then Input.Placeholder "ex: 8h45"
-              Input.Value inputValue
-              Input.CustomClass "time-input"
-            ] ]
-    else
-      Content.content
-        [ Content.CustomClass "display-time"
-          Content.Modifiers [
-            Modifier.TextWeight TextWeight.Bold
-            if idx = 0 then
-              Modifier.TextAlignment(Screen.All, TextAlignment.Right)
-            else
-              Modifier.TextAlignment(Screen.All, TextAlignment.Left)
-          ]
-        ]
-        [ str (string <| snd model.Timestamps.[idx]) ]
-
-
-let private contentLvl2_Form (model: Model) dispatch =
+let private contentLvl2Form (model: Model) dispatch =
+    let cursor = if not model.ShowResult then "_" else String.Empty
     [
-      if model.FormCount = 1 then
-        timeInput 0 model dispatch
-      else
-          Columns.columns
-            [ Columns.IsVCentered ]
-            [ Column.column [] [ timeInput 0 model dispatch ]
-              Column.column
-                [ Column.Width(Screen.All, Column.IsNarrow) ]
-                [ Content.content [ Content.CustomClass "display-time-sep" ] [
-                    match model.Operation with
-                    | Some Diff -> str " to "
-                    | Some Sum -> str " + "
-                    | _ -> ()
-                ] ]
-              Column.column [] [ timeInput 1 model dispatch ] ]
+      match model.FormCount with
+      | 1 when model.HasInitialState -> spanClass "display-time" "ex: 8h30_"
+      | 1 ->
+        spanClass "display-time" (fst model.Timestamps.[0])
+        spanClass "display-time" cursor
+      | _ ->
+        div [] [
+          let operandTimeClass = if not model.ShowResult then "display-time" else "display-time frozen"
+          Text.span [ CustomClass "display-time frozen" ] [ str (string <| snd model.Timestamps.[0]) ]
+          Text.span [ CustomClass "display-time-sep" ] [
+            match model.Operation with
+            | Some Diff -> str " to "
+            | Some Sum -> str " + "
+            | _ -> () ]
+          Text.span [ CustomClass operandTimeClass ]
+            [ if not model.ShowResult then
+                str (sprintf "%s%s" (fst model.Timestamps.[1]) cursor)
+              else
+                str (sprintf "%s%s" (string <| snd model.Timestamps.[1]) cursor) ]
 
-      if model.ShowResult then
-        let ts1 = (snd model.Timestamps.[0]).ToTimeSpan()
-        let ts2 = (snd model.Timestamps.[1]).ToTimeSpan()
-        let style = [
-          Content.CustomClass "display-result"
-          Content.Modifiers [ Modifier.TextWeight TextWeight.Bold ]
+          // Display result
+          if model.ShowResult then
+            let ts1 = (snd model.Timestamps.[0]).ToTimeSpan()
+            let ts2 = (snd model.Timestamps.[1]).ToTimeSpan()
+
+            spanClass "display-time-sep" " = "
+
+            match model.Operation with
+            | Some Diff ->
+              let diff = if ts1 < ts2 then ts2.Subtract(ts1) else ts1.Subtract(ts2)
+              spanClass "display-time display-result" (sprintf "%dh%02d" diff.Hours diff.Minutes)
+            | Some Sum ->
+              let sum = ts1.Add(ts2)
+              spanClass "display-time display-result" (sprintf "%dh%02d" sum.Hours sum.Minutes)
+            | _ -> ()
         ]
 
-        match model.Operation with
-        | Some Diff ->
-          let diff = if ts1 < ts2 then ts2.Subtract(ts1) else ts1.Subtract(ts2)
-          Content.content style [ str <| sprintf "Δ = %dh%02d" diff.Hours diff.Minutes ]
-        | Some Sum ->
-          let sum = ts1.Add(ts2)
-          Content.content style [ str <| sprintf "Σ = %dh%02d" sum.Hours sum.Minutes ]
-        | _ -> ()
     ]
 
 
-let private contentLvl1_Column (model: Model) dispatch =
+let emptyColumn = Column.column [] []
+
+let private contentLvl1Column (model: Model) dispatch =
     [ Container.container []
         [
           // Title
           if model.FormCount = 1 || model.ShowResult |> not then
             Heading.h2 [ Heading.CustomClass "title" ] [ str "time calculator" ]
           else
-            Heading.h4 [ Heading.CustomClass "title title-results"] [ str "results" ]
+            Heading.h2 [ Heading.CustomClass "title" ] [ str "results" ]
 
           // Content
           Columns.columns
             [ Columns.CustomClass "has-text-centered"
               Columns.IsVCentered ]
             [
-              Column.column [] []
+              emptyColumn
               Column.column
                 [ if model.FormCount = 1 then
-                    Column.Width(Screen.All, Column.Is4)
+                    Column.Width(Screen.All, Column.IsFourFifths)
                   else
-                    Column.Width(Screen.All, Column.IsFourFifths) ]
-                (contentLvl2_Form model dispatch)
-              Column.column [] []
+                    Column.Width(Screen.All, Column.Is12) ]
+                (contentLvl2Form model dispatch)
+              emptyColumn
             ] ] ]
 
 let private view model dispatch =
     Hero.hero
         [ Hero.IsFullHeight
-          Hero.IsMedium ] [ Hero.body [] (contentLvl1_Column model dispatch) ]
+          Hero.IsMedium ] [ Hero.body [] (contentLvl1Column model dispatch) ]
 
 
 let documentEventListener initial =
   let sub dispatch =
     document.addEventListener("keydown", fun e ->
       let ke: KeyboardEvent = downcast e
-      if ke.key = "Backspace" then
-        if (e.target :?> HTMLElement).nodeName.ToUpperInvariant() = "BODY" then
-          e.preventDefault()
-          dispatch DocumentBackspace
-        else
-          ()
-      elif ke.key = "Tab" then e.preventDefault()
+      printfn "%s" ke.key
+      match ke.key with
+      | "Backspace"                           -> dispatch Backspace
+      | "Tab"                                 -> e.preventDefault(); dispatch Tab
+      | "+"                                   -> dispatch Plus
+      | "h" | "H"                             -> HourSep |> dispatch
+      | key when key.Length = 1 && '0' <= key.[0] && key.[0] <= '9'
+          -> Digit key.[0] |> dispatch
+      | _ -> ()
     )
+
   Cmd.ofSub sub
 
-
-type Model2 = string
-type Msg2 =
-  | Type of char
-  | Backspace
-
-let update2 msg model =
-  match msg, model with
-  | Type c, s -> s + string c, Cmd.none
-  | Backspace, "" -> "", Cmd.none
-  | Backspace, s -> s.Substring(0, s.Length - 1), Cmd.none
-
-
-let init2 _ = "hello...", Cmd.none
-
-let view2 model dispatch =
-  Hero.hero
-    [ Hero.IsFullHeight
-      Hero.IsMedium ]
-    [ Hero.body []
-        [ Container.container [ Container.Props [ Style [ FontSize "3rem" ] ] ]
-            [ str (model + "_")] ] ]
-
-let keyListener initial =
-  let sub dispatch =
-    document.addEventListener("keydown", fun e ->
-      let ke: KeyboardEvent = downcast e
-
-      if ke.key = "Tab" then e.preventDefault()
-      elif ke.key = "Backspace" then dispatch Backspace
-      else
-        match ke.key.ToCharArray() with
-        | [|' '|] -> dispatch (Type ' ')
-        | [|x|] when 'a' <= x && x <= 'z' || 'A' <= x && x <= 'Z' || '0' <= x && x <= '9' -> dispatch (Type x)
-        | _ -> ()
-    )
-  Cmd.ofSub sub
 
 
 open Elmish.Debug
 open Elmish.HMR
 
 Program.mkProgram init update view
-// Program.mkProgram init2 update2 view2
 |> Program.withReactSynchronous "elmish-app"
 |> Program.withSubscription documentEventListener
-// |> Program.withSubscription keyListener
 #if DEBUG
 |> Program.withDebugger
 #endif
