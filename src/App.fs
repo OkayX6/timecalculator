@@ -6,8 +6,19 @@ open Browser.Types
 open Elmish
 open Fable.Core
 open Fable.React
+open Fable.React.Props
 open Fulma
 open TimeFormat
+
+type FitTextProps =
+  | Compressor of float
+  | MinFontSize of int
+  | MaxFontSize of int
+  | DefaultFontSize of int
+  | Debounce of milliseconds:int // In ms
+
+let inline fitText (props : FitTextProps list) children : ReactElement =
+  ofImport "default" "@kennethormandy/react-fittext" (JsInterop.keyValueList CaseRules.LowerFirst props) [fragment [] children]
 
 
 /// Uses Fable's Emit to call JavaScript directly and play sounds
@@ -143,37 +154,51 @@ let private contentLvl2Form (model: Model) dispatch =
         spanClass "display-time" (fst model.Timestamps.[0])
         spanClass "display-time" cursor
       | _ ->
-        div [] [
-          let operandTimeClass = if not model.ShowResult then "display-time" else "display-time frozen"
-          Text.span [ CustomClass "display-time frozen" ] [ str (string <| snd model.Timestamps.[0]) ]
-          Text.span [ CustomClass "display-time-sep" ] [
+        // div [] [
+        fitText [ Compressor 0.95; MaxFontSize 128; Debounce 50 ] [
+          // let operandTimeClass = if not model.ShowResult then "display-time" else "display-time frozen"
+          let param1Class = "display-time-fit frozen"
+          let operandTimeClass = if not model.ShowResult then "display-time-fit" else "display-time-fit frozen"
+          let sepClass = "display-time-sep-fit"
+
+          spanClass param1Class (string <| snd model.Timestamps.[0])
+          spanClass sepClass (
             match model.Operation with
-            | Some Diff -> str " to "
-            | Some Sum -> str " + "
-            | _ -> () ]
-          Text.span [ CustomClass operandTimeClass ]
-            [ if not model.ShowResult then
-                str (sprintf "%s%s" (fst model.Timestamps.[1]) cursor)
-              else
-                str (sprintf "%s%s" (string <| snd model.Timestamps.[1]) cursor) ]
+            | Some Diff -> " to "
+            | Some Sum -> " + "
+            | _ -> "")
+
+          spanClass operandTimeClass (
+            if not model.ShowResult then
+              sprintf "%s%s" (fst model.Timestamps.[1]) cursor
+            else
+              sprintf "%s%s" (string <| snd model.Timestamps.[1]) cursor)
 
           // Display result
           if model.ShowResult then
             let ts1 = (snd model.Timestamps.[0]).ToTimeSpan()
             let ts2 = (snd model.Timestamps.[1]).ToTimeSpan()
 
-            spanClass "display-time-sep" " = "
+            // spanClass "display-time-sep" " = "
+            spanClass "display-time-sep-fit" " = "
 
             match model.Operation with
             | Some Diff ->
               let diff = if ts1 < ts2 then ts2.Subtract(ts1) else ts1.Subtract(ts2)
-              spanClass "display-time display-result" (sprintf "%dh%02d" diff.Hours diff.Minutes)
+              spanClass "display-time-fit display-result" (sprintf "%dh%02d" diff.Hours diff.Minutes)
             | Some Sum ->
               let sum = ts1.Add(ts2)
-              spanClass "display-time display-result" (sprintf "%dh%02d" sum.Hours sum.Minutes)
+              spanClass "display-time-fit display-result" (sprintf "%dh%02d" sum.Hours sum.Minutes)
             | _ -> ()
         ]
 
+        // fitText [ Compressor 1.0; MaxFontSize 128; Debounce 50 ] [
+        //     spanClass "display-time-fit" "10h30"
+        //     spanClass "display-time-fit display-time-sep-fit" " to "
+        //     spanClass "display-time-fit" "8h30"
+        //     spanClass "display-time-fit display-time-sep-fit" " = "
+        //     spanClass "display-time-fit" "18h30"
+        // ]
     ]
 
 
@@ -198,7 +223,7 @@ let private contentLvl1Column (model: Model) dispatch =
                 [ if model.FormCount = 1 then
                     Column.Width(Screen.All, Column.IsFourFifths)
                   else
-                    Column.Width(Screen.All, Column.Is12) ]
+                    Column.Width(Screen.All, Column.Is9) ]
                 (contentLvl2Form model dispatch)
               emptyColumn
             ] ] ]
@@ -213,7 +238,6 @@ let documentEventListener initial =
   let sub dispatch =
     document.addEventListener("keydown", fun e ->
       let ke: KeyboardEvent = downcast e
-      printfn "%s" ke.key
       match ke.key with
       | "Backspace"                           -> dispatch Backspace
       | "Tab"                                 -> e.preventDefault(); dispatch Tab
@@ -222,6 +246,10 @@ let documentEventListener initial =
       | key when key.Length = 1 && '0' <= key.[0] && key.[0] <= '9'
           -> Digit key.[0] |> dispatch
       | _ -> ()
+    )
+
+    document.addEventListener("visibilitychange", fun e ->
+      printfn "visibility change_"
     )
 
   Cmd.ofSub sub

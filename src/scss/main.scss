@@ -84,7 +84,6 @@ body {
   font-weight: normal;
   padding-left: 2rem;
   padding-right: 2rem;
-  line-height: 1.78;
   color: $accent-color;
 }
 
@@ -96,4 +95,18 @@ body {
   // font-size: 5rem;
   font-weight: bold;
   // color: $accent-color;
+}
+
+.display-time-fit {
+  font-family: $time-font;
+  font-weight: bold;
+}
+
+.display-time-sep-fit {
+  font-family: $time-font;
+  font-weight: bold;
+  font-size: 75%;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  color: $accent-color;
 }
