@@ -1,4 +1,4 @@
-module App.TimeFormat
+module TimeCalc.TimeFormat
 
 open System
 
@@ -13,7 +13,7 @@ type TimeFormat =
     match x with
     | Empty -> "0h00"
     | Minute mm -> sprintf "0h%02d" mm
-    | Hour hh -> sprintf "%dh00" hh
+    | Hour hh -> sprintf "%2dh" hh
     | HourAndMinute(hh, mm) -> sprintf "%2dh%02d" hh mm
 
   member x.ToTimeSpan() =
@@ -66,11 +66,11 @@ let isHourPattern (str: string) =
 let validateTime s =
     match s |> String.length, s with
     | 0, _ -> Some Empty
-    | 1, ValidInt m -> Some <| Minute m
-    | 2, ValidMinute mm -> Some <| Minute mm
-    | 2, _ ->
+    | 1, ValidInt m
+    | 2, ValidMinute m -> Some <| Minute m
+    | 2, _ when isSeparator s.[1] ->
         match s.[0..0] with
-        | ValidHour h when s.[1] |> isSeparator -> Some <| Hour h
+        | ValidHour h -> Some <| Hour h
         | _ -> None
     | 3, _ ->
         match s.[0..1], s.[0..0], s.[2..2] with
@@ -81,10 +81,7 @@ let validateTime s =
         match s.[0..0], s.[2..] with
         | ValidHour h, ValidMinute mm -> Some <| HourAndMinute(h, mm)
         | _ -> None
-    | 4, _ when isSeparator s.[2] ->
-        match s.[0..1], s.[3..] with
-        | ValidHour hh, ValidMinute m -> Some <| HourAndMinute(hh, m)
-        | _ -> None
+    | 4, _
     | 5, _ when isSeparator s.[2] ->
         match s.[0..1], s.[3..] with
         | ValidHour hh, ValidMinute mm -> Some <| HourAndMinute(hh, mm)

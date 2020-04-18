@@ -3,8 +3,9 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Proto2.fs" />
+    <Compile Include="FitText.fs" />
     <Compile Include="TimeFormat.fs" />
+    <Compile Include="Input.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />

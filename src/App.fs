@@ -1,24 +1,15 @@
 module App.View
 
 open System
-open Browser.Dom
-open Browser.Types
 open Elmish
 open Fable.Core
 open Fable.React
 open Fable.React.Props
 open Fulma
-open TimeFormat
-
-type FitTextProps =
-  | Compressor of float
-  | MinFontSize of int
-  | MaxFontSize of int
-  | DefaultFontSize of int
-  | Debounce of milliseconds:int // In ms
-
-let inline fitText (props : FitTextProps list) children : ReactElement =
-  ofImport "default" "@kennethormandy/react-fittext" (JsInterop.keyValueList CaseRules.LowerFirst props) [fragment [] children]
+open TimeCalc
+open TimeCalc.Input
+open TimeCalc.TimeFormat
+open FitText
 
 
 /// Uses Fable's Emit to call JavaScript directly and play sounds
@@ -44,22 +35,6 @@ let replaceValueAt array i value =
     updatedArray
 
 
-type CharMsg =
-  | HourSep
-  | Digit of char
-  | Left
-  | Right
-  | Plus
-  | Tab
-  | Space
-  | Backspace
-  | Enter
-  member x.StringRepr =
-    match x with
-    | HourSep -> "h"
-    | Digit c -> string c
-    | _ -> ""
-
 type Msg =
   | DisableInitialState
   | ChangeValue of (string * TimeFormat) * cursorPosDiff:int
@@ -67,6 +42,7 @@ type Msg =
   | RemoveCurrentForm
   | GoToPreviousForm
   | GoToNextForm
+  | Reset
   | ShowResult of bool
 
 
@@ -91,6 +67,7 @@ let convertToMsg (model: Model) msg =
       | Some format -> ChangeValue ((newStr, format), 1) |> Some
       | None -> None
   | Left | Right -> None
+  | Escape -> Some Reset
   | Backspace when model.HasInitialState -> DisableInitialState |> Some
   | Backspace when model.ShowResult -> ShowResult false |> Some
   | Backspace when snd model.CurrentTimestamp = Empty && model.CurrentForm = 1 ->
@@ -105,9 +82,9 @@ let convertToMsg (model: Model) msg =
         | Some format -> ChangeValue ((newStr, format), -1) |> Some
         | None -> None
       else None
-  | Tab | Enter when model.CurrentForm = 0 -> CreateForm Diff |> Some
+  | Tab | Enter | Space when model.CurrentForm = 0 -> CreateForm Diff |> Some
   | Plus when model.CurrentForm = 0 -> CreateForm Sum |> Some
-  | Tab | Enter when model.CurrentForm = 1 -> Some <| ShowResult true
+  | Tab | Enter | Space when model.CurrentForm = 1 -> Some <| ShowResult true
   | _ -> None
 
 let private update charMsg (model: Model) =
@@ -116,6 +93,7 @@ let private update charMsg (model: Model) =
     |> Option.map (fun msg ->
       playKeyPress ()
       match msg with
+      | Reset -> { fst (init ()) with HasInitialState = false }
       | DisableInitialState -> { model with HasInitialState = false }
       | ChangeValue(newTs, cursorPosDiff) ->
           { model with
@@ -146,60 +124,50 @@ let private spanClass classNames txt =
   Text.span [CustomClass classNames] [str txt]
 
 let private contentLvl2Form (model: Model) dispatch =
+    let fitTextParams = [ Compressor 0.95; MaxFontSize 128; Debounce 50 ]
     let cursor = if not model.ShowResult then "_" else String.Empty
-    [
+
+    fitText fitTextParams [
       match model.FormCount with
-      | 1 when model.HasInitialState -> spanClass "display-time" "ex: 8h30_"
+      | 1 when model.HasInitialState ->
+        spanClass "display-time" "ex: 8h30_"
       | 1 ->
         spanClass "display-time" (fst model.Timestamps.[0])
         spanClass "display-time" cursor
       | _ ->
-        // div [] [
-        fitText [ Compressor 0.95; MaxFontSize 128; Debounce 50 ] [
-          // let operandTimeClass = if not model.ShowResult then "display-time" else "display-time frozen"
-          let param1Class = "display-time-fit frozen"
-          let operandTimeClass = if not model.ShowResult then "display-time-fit" else "display-time-fit frozen"
-          let sepClass = "display-time-sep-fit"
+        let param1Class = "display-time frozen"
+        let operandTimeClass = if not model.ShowResult then "display-time" else "display-time frozen"
 
-          spanClass param1Class (string <| snd model.Timestamps.[0])
-          spanClass sepClass (
-            match model.Operation with
-            | Some Diff -> " to "
-            | Some Sum -> " + "
-            | _ -> "")
+        spanClass param1Class (string <| snd model.Timestamps.[0])
+        spanClass "display-time-sep frozen" (
+          match model.Operation with
+          | Some Diff -> " -> "
+          | Some Sum -> " + "
+          | _ -> "")
 
-          spanClass operandTimeClass (
-            if not model.ShowResult then
-              sprintf "%s%s" (fst model.Timestamps.[1]) cursor
-            else
-              sprintf "%s%s" (string <| snd model.Timestamps.[1]) cursor)
+        spanClass operandTimeClass (
+          if not model.ShowResult then
+            sprintf "%s%s" (fst model.Timestamps.[1]) cursor
+          else
+            sprintf "%O%s" (snd model.Timestamps.[1]) cursor)
 
-          // Display result
-          if model.ShowResult then
-            let ts1 = (snd model.Timestamps.[0]).ToTimeSpan()
-            let ts2 = (snd model.Timestamps.[1]).ToTimeSpan()
+        // Display result
+        if model.ShowResult then
+          let ts1 = (snd model.Timestamps.[0]).ToTimeSpan()
+          let ts2 = (snd model.Timestamps.[1]).ToTimeSpan()
 
-            // spanClass "display-time-sep" " = "
-            spanClass "display-time-sep-fit" " = "
+          spanClass "display-time-sep frozen" " = "
 
-            match model.Operation with
-            | Some Diff ->
-              let diff = if ts1 < ts2 then ts2.Subtract(ts1) else ts1.Subtract(ts2)
-              spanClass "display-time-fit display-result" (sprintf "%dh%02d" diff.Hours diff.Minutes)
-            | Some Sum ->
-              let sum = ts1.Add(ts2)
-              spanClass "display-time-fit display-result" (sprintf "%dh%02d" sum.Hours sum.Minutes)
-            | _ -> ()
-        ]
+          match model.Operation with
+          | Some Diff ->
+            let diff = if ts1 < ts2 then ts2.Subtract(ts1) else ts1.Subtract(ts2)
+            spanClass "display-time display-result" (sprintf "%dh%02d" diff.Hours diff.Minutes) // Δ
+          | Some Sum ->
+            let sum = ts1.Add(ts2)
+            spanClass "display-time display-result" (sprintf "%dh%02d" sum.Hours sum.Minutes)
+          | _ -> ()
+    ] |> List.singleton
 
-        // fitText [ Compressor 1.0; MaxFontSize 128; Debounce 50 ] [
-        //     spanClass "display-time-fit" "10h30"
-        //     spanClass "display-time-fit display-time-sep-fit" " to "
-        //     spanClass "display-time-fit" "8h30"
-        //     spanClass "display-time-fit display-time-sep-fit" " = "
-        //     spanClass "display-time-fit" "18h30"
-        // ]
-    ]
 
 
 let emptyColumn = Column.column [] []
@@ -234,34 +202,13 @@ let private view model dispatch =
           Hero.IsMedium ] [ Hero.body [] (contentLvl1Column model dispatch) ]
 
 
-let documentEventListener initial =
-  let sub dispatch =
-    document.addEventListener("keydown", fun e ->
-      let ke: KeyboardEvent = downcast e
-      match ke.key with
-      | "Backspace"                           -> dispatch Backspace
-      | "Tab"                                 -> e.preventDefault(); dispatch Tab
-      | "+"                                   -> dispatch Plus
-      | "h" | "H"                             -> HourSep |> dispatch
-      | key when key.Length = 1 && '0' <= key.[0] && key.[0] <= '9'
-          -> Digit key.[0] |> dispatch
-      | _ -> ()
-    )
-
-    document.addEventListener("visibilitychange", fun e ->
-      printfn "visibility change_"
-    )
-
-  Cmd.ofSub sub
-
-
 
 open Elmish.Debug
 open Elmish.HMR
 
 Program.mkProgram init update view
 |> Program.withReactSynchronous "elmish-app"
-|> Program.withSubscription documentEventListener
+|> Program.withSubscription Input.documentEventListener
 #if DEBUG
 |> Program.withDebugger
 #endif
