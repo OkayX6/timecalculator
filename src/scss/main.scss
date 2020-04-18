@@ -9,8 +9,8 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts/";
 
 @font-face {
   font-family: 'Cascadia Code';
-  src: url('cascadiamono-webfont.woff2') format('woff2'),
-       url('cascadiamono-webfont.woff') format('woff');
+  src: url('cascadia-webfont.woff2') format('woff2'),
+        url('cascadia-webfont.woff') format('woff');
   font-weight: normal;
   font-style: normal;
 }
@@ -36,8 +36,8 @@ html {
   overflow-y: hidden;
 }
 
-// $time-font: 'Cascadia Code', 'D-DIN Condensed';
-// $time-font-size: 7rem;
+$title-font: 'Cascadia Code', monospace;
+$symbol-font: 'Cascadia Code', monospace;
 $time-font: 'D-DIN Condensed';
 $time-font-size: 8rem;
 
@@ -64,7 +64,7 @@ body {
 }
 
 .title {
-  font-family: 'Cascadia Code', 'D-DIN Regular', 'Consolas', monospace;
+  font-family: $title-font;
   font-size: 2.75rem !important;
   color: $accent-color;
   text-align: center;
@@ -75,15 +75,13 @@ body {
 }
 
 .display-time {
-  font-size: $time-font-size;
+  font-family: $time-font;
   font-weight: bold;
 }
 
 .display-time-sep {
-  font-size: 6rem;
-  font-weight: normal;
-  padding-left: 2rem;
-  padding-right: 2rem;
+  font-family: $symbol-font;
+  font-size: 75%;
   color: $accent-color;
 }
 
@@ -92,21 +90,11 @@ body {
 }
 
 .display-result {
-  // font-size: 5rem;
-  font-weight: bold;
-  // color: $accent-color;
-}
-
-.display-time-fit {
-  font-family: $time-font;
   font-weight: bold;
 }
 
-.display-time-sep-fit {
-  font-family: $time-font;
+.test-sep {
+  font-family: $symbol-font;
   font-weight: bold;
   font-size: 75%;
-  padding-left: 2rem;
-  padding-right: 2rem;
-  color: $accent-color;
 }
