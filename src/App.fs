@@ -7,43 +7,13 @@ open Fable.React
 open Fable.React.Props
 open Fulma
 open TimeCalc
-open TimeCalc.Input
-open TimeCalc.TimeFormat
+open TimeCalc.Model
 open FitText
 
 
 /// Uses Fable's Emit to call JavaScript directly and play sounds
 [<Emit("(new Audio($0)).play();")>]
 let play (fileName: string) = jsNative
-
-
-type Op = Diff | Sum
-type Model =
-  { HasInitialState: bool
-    CurrentForm: int
-    CursorPos: int
-    Timestamps: (string * TimeFormat) []
-    Operation: Option<Op>
-    ShowResult: bool }
-  member x.FormCount = x.Timestamps.Length
-  member x.CurrentTimestamp = x.Timestamps.[x.CurrentForm]
-
-
-let replaceValueAt array i value =
-    let updatedArray = Array.copy array
-    updatedArray.[i] <- value
-    updatedArray
-
-
-type Msg =
-  | DisableInitialState
-  | ChangeValue of (string * TimeFormat) * cursorPosDiff:int
-  | CreateForm of Op
-  | RemoveCurrentForm
-  | GoToPreviousForm
-  | GoToNextForm
-  | Reset
-  | ShowResult of bool
 
 
 let init _ =
@@ -58,38 +28,9 @@ let init _ =
 let playKeyPress () = play "assets/keypress.wav"
 
 
-let convertToMsg (model: Model) msg =
-  match msg with
-  | (HourSep | Digit _) as c ->
-      let str, _ = model.CurrentTimestamp
-      let newStr = str + c.StringRepr
-      match validateTime newStr with
-      | Some format -> ChangeValue ((newStr, format), 1) |> Some
-      | None -> None
-  | Left | Right -> None
-  | Escape -> Some Reset
-  | Backspace when model.HasInitialState -> DisableInitialState |> Some
-  | Backspace when model.ShowResult -> ShowResult false |> Some
-  | Backspace when snd model.CurrentTimestamp = Empty && model.CurrentForm = 1 ->
-      Some RemoveCurrentForm
-  | Backspace ->
-      let str, _ = model.CurrentTimestamp
-      let cpos = model.CursorPos
-      let newStr = str.[0..cpos-2] + str.Substring(cpos)
-
-      if cpos > 0 then
-        match validateTime newStr with
-        | Some format -> ChangeValue ((newStr, format), -1) |> Some
-        | None -> None
-      else None
-  | Tab | Enter | Space when model.CurrentForm = 0 -> CreateForm Diff |> Some
-  | Plus when model.CurrentForm = 0 -> CreateForm Sum |> Some
-  | Tab | Enter | Space when model.CurrentForm = 1 -> Some <| ShowResult true
-  | _ -> None
-
 let private update charMsg (model: Model) =
   let res =
-    convertToMsg model charMsg
+    Model.convertToMsg model charMsg
     |> Option.map (fun msg ->
       playKeyPress ()
       match msg with
@@ -120,9 +61,8 @@ let private update charMsg (model: Model) =
   res, Cmd.none
 
 
-let private spanClass classNames txt =
-  Text.span [CustomClass classNames] [str txt]
-
+let private spanClass classNames txt = Text.span [CustomClass classNames] [str txt]
+let private displaySeparator txt = spanClass "display-time-sep frozen" txt
 let private contentLvl2Form (model: Model) dispatch =
     let fitTextParams = [ Compressor 0.95; MaxFontSize 128; Debounce 50 ]
     let cursor = if not model.ShowResult then "_" else String.Empty
@@ -139,7 +79,7 @@ let private contentLvl2Form (model: Model) dispatch =
         let operandTimeClass = if not model.ShowResult then "display-time" else "display-time frozen"
 
         spanClass param1Class (string <| snd model.Timestamps.[0])
-        spanClass "display-time-sep frozen" (
+        displaySeparator (
           match model.Operation with
           | Some Diff -> " -> "
           | Some Sum -> " + "
@@ -156,7 +96,7 @@ let private contentLvl2Form (model: Model) dispatch =
           let ts1 = (snd model.Timestamps.[0]).ToTimeSpan()
           let ts2 = (snd model.Timestamps.[1]).ToTimeSpan()
 
-          spanClass "display-time-sep frozen" " = "
+          displaySeparator " = "
 
           match model.Operation with
           | Some Diff ->

@@ -8,20 +8,18 @@ open Elmish
 type CharMsg =
   | HourSep
   | Digit of char
-  | Left
-  | Right
+  | Left | Right
   | Plus
   | Tab
   | Space
   | Backspace
-  | Escape
   | Enter
+  | Escape
   member x.StringRepr =
     match x with
     | HourSep -> "h"
     | Digit c -> string c
     | _ -> ""
-
 
 
 let documentEventListener initial =
