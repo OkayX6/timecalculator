@@ -1,7 +1,7 @@
 namespace TimeCalc
 
 
-type Op = Diff | Sum
+type Op = Diff | Sum | Sub
 type TimeFormData = string * TimeFormat
 type CursorPos = int
 
@@ -10,9 +10,10 @@ type LineCalculationState =
   | OperandRight of TimeFormData * Op * TimeFormData * CursorPos
   | DisplayResult of TimeFormData * Op * TimeFormData
 
-// type Model =
-//   | InitialState
-//   | IsEditing of LineCalculationState
+type Calculations = Calculations of LineCalculationState[] * LineCalculationState
+type Model2 =
+  | InitialState
+  | EditionMode of currentLine:LineCalculationState * previousLines:LineCalculationState[]
 
 type Model =
   { HasInitialState: bool
@@ -33,6 +34,45 @@ type Msg =
   | GoToNextForm
   | Reset
   | ShowResult of bool
+
+
+module Model2 =
+  open TimeCalc.Input
+  open TimeCalc.TimeFormat
+
+  let convertToMsg (model: Model2) msg =
+    match model, msg with
+    | InitialState, (Backspace | HourSep | Digit _) -> DisableInitialState |> Some
+    | _, Escape -> Some Reset
+    | _, (Left | Right) -> None
+    | EditionMode (DisplayResult _, _), Backspace -> ShowResult false |> Some
+    | EditionMode (OperandRight (_,_,(_, Empty),_), _), _ -> Some RemoveCurrentForm
+    | _ -> None
+
+    // match msg with
+    // | (HourSep | Digit _) as c ->
+    //     let str, _ = model.CurrentTimestamp
+    //     let newStr = str + c.StringRepr
+    //     match validateTime newStr with
+    //     | Some format -> ChangeValue ((newStr, format), 1) |> Some
+    //     | None -> None
+    // // | Backspace when model.ShowResult -> ShowResult false |> Some
+    // // | Backspace when snd model.CurrentTimestamp = Empty && model.CurrentForm = 1 -> Some RemoveCurrentForm
+    // | Backspace ->
+    //     let str, cpos = fst model.CurrentTimestamp, model.CursorPos
+    //     let newStr = str.[0..cpos-2] + str.Substring(cpos)
+
+    //     if cpos > 0 then
+    //       match validateTime newStr with
+    //       | Some format -> ChangeValue ((newStr, format), -1) |> Some
+    //       | None -> None
+    //     else None
+    // | Enter when model.HasInitialState -> None
+    // | Tab | Enter | Space when model.CurrentForm = 0 -> CreateForm Diff |> Some
+    // | Tab | Enter | Space when model.CurrentForm = 1 -> ShowResult true |> Some
+    // | Plus when model.CurrentForm = 0 -> CreateForm Sum |> Some
+    // | Minus when model.CurrentForm = 0 -> CreateForm Sub |> Some
+    // | _ -> None
 
 
 module Model =
@@ -71,4 +111,5 @@ module Model =
     | Tab | Enter | Space when model.CurrentForm = 0 -> CreateForm Diff |> Some
     | Tab | Enter | Space when model.CurrentForm = 1 -> ShowResult true |> Some
     | Plus when model.CurrentForm = 0 -> CreateForm Sum |> Some
+    | Minus when model.CurrentForm = 0 -> CreateForm Sub |> Some
     | _ -> None

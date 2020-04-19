@@ -13,14 +13,15 @@ open FitText
 /// Uses Fable's Emit to call JavaScript directly and play sounds
 [<Emit("(new Audio($0)).play();")>]
 let play (fileName: string) = jsNative
+let playKeyPress () = play "assets/keypress.wav"
 
 
-let init _ =
+let defaultTimeFormData = "", Empty
+let defaultLineCalculationState = OperandLeft(defaultTimeFormData, 0)
+
+let init _ = //InitialState, Cmd.none
   { HasInitialState = true; CurrentForm = 0; CursorPos = 0
     Timestamps = [| "", Empty |]; Operation = None; ShowResult = false }, Cmd.none
-
-
-let playKeyPress () = play "assets/keypress.wav"
 
 
 let private update charMsg (model: Model) =
@@ -75,7 +76,10 @@ let private contentLvl2Form (model: Model) _dispatch =
         let operandTimeClass = if not model.ShowResult then "display-time" else "display-time frozen"
 
         spanClass param1Class (string <| snd model.Timestamps.[0])
-        displaySeparator (match model.Operation with Some Diff -> " -> " | Some Sum -> " + " | _ -> "")
+        displaySeparator (
+          model.Operation
+          |> Option.map (function Diff -> " -> " | Sum -> " + " | Sub -> " - ")
+          |> Option.defaultValue "")
         spanClass operandTimeClass (
           if not model.ShowResult
           then sprintf "%s%s" (fst model.Timestamps.[1]) cursor
@@ -92,7 +96,8 @@ let private contentLvl2Form (model: Model) _dispatch =
           | Some Diff ->
             let diff = if ts1 < ts2 then ts2.Subtract(ts1) else ts1.Subtract(ts2)
             displayResult diff
-          | Some Sum -> let sum = ts1.Add(ts2) in displayResult sum
+          | Some Sum -> ts1.Add(ts2) |> displayResult
+          | Some Sub -> ts1.Subtract(ts2) |> displayResult
           | _ -> ()
     ] |> List.singleton
 

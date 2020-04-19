@@ -9,7 +9,7 @@ type CharMsg =
   | HourSep
   | Digit of char
   | Left | Right
-  | Plus
+  | Plus | Minus
   | Tab
   | Space
   | Backspace
@@ -33,6 +33,7 @@ let documentEventListener initial =
       | " "         -> dispatch Space
       | "Tab"       -> e.preventDefault(); dispatch Tab
       | "+"         -> dispatch Plus
+      | "-"         -> dispatch Minus
       | "h" | "H"   -> HourSep |> dispatch
       | key when key.Length = 1 && '0' <= key.[0] && key.[0] <= '9'
           -> Digit key.[0] |> dispatch
