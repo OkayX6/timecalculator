@@ -29,6 +29,7 @@ let documentEventListener initial =
       match ke.key with
       | "Backspace" -> dispatch Backspace
       | "Escape"    -> dispatch Escape
+      | "Enter"     -> dispatch Enter
       | " "         -> dispatch Space
       | "Tab"       -> e.preventDefault(); dispatch Tab
       | "+"         -> dispatch Plus

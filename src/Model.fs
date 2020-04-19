@@ -6,9 +6,13 @@ type TimeFormData = string * TimeFormat
 type CursorPos = int
 
 type LineCalculationState =
-  | CursorLeft of TimeFormData * CursorPos
-  | CursorRight of TimeFormData * Op * TimeFormData * CursorPos
+  | OperandLeft of TimeFormData * CursorPos
+  | OperandRight of TimeFormData * Op * TimeFormData * CursorPos
   | DisplayResult of TimeFormData * Op * TimeFormData
+
+// type Model =
+//   | InitialState
+//   | IsEditing of LineCalculationState
 
 type Model =
   { HasInitialState: bool
@@ -63,6 +67,7 @@ module Model =
           | Some format -> ChangeValue ((newStr, format), -1) |> Some
           | None -> None
         else None
+    | Enter when model.HasInitialState -> None
     | Tab | Enter | Space when model.CurrentForm = 0 -> CreateForm Diff |> Some
     | Tab | Enter | Space when model.CurrentForm = 1 -> ShowResult true |> Some
     | Plus when model.CurrentForm = 0 -> CreateForm Sum |> Some

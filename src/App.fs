@@ -4,7 +4,6 @@ open System
 open Elmish
 open Fable.Core
 open Fable.React
-open Fable.React.Props
 open Fulma
 open TimeCalc
 open TimeCalc.Model
@@ -17,12 +16,8 @@ let play (fileName: string) = jsNative
 
 
 let init _ =
-  { HasInitialState = true
-    CurrentForm = 0
-    CursorPos = 0
-    Timestamps = [| "", Empty |]
-    Operation = None
-    ShowResult = false }, Cmd.none
+  { HasInitialState = true; CurrentForm = 0; CursorPos = 0
+    Timestamps = [| "", Empty |]; Operation = None; ShowResult = false }, Cmd.none
 
 
 let playKeyPress () = play "assets/keypress.wav"
@@ -63,33 +58,28 @@ let private update charMsg (model: Model) =
 
 let private spanClass classNames txt = Text.span [CustomClass classNames] [str txt]
 let private displaySeparator txt = spanClass "display-time-sep frozen" txt
-let private contentLvl2Form (model: Model) dispatch =
+let private displayOperand subModel = spanClass "display-time" (sprintf "%O_" <| fst subModel)
+let private displayResult (ts: TimeSpan) =
+  spanClass "display-time display-result" (sprintf "%dh%02d" ts.Hours ts.Minutes)
+
+let private contentLvl2Form (model: Model) _dispatch =
     let fitTextParams = [ Compressor 0.95; MaxFontSize 128; Debounce 50 ]
     let cursor = if not model.ShowResult then "_" else String.Empty
 
     fitText fitTextParams [
       match model.FormCount with
-      | 1 when model.HasInitialState ->
-        spanClass "display-time" "ex: 8h30_"
-      | 1 ->
-        spanClass "display-time" (fst model.Timestamps.[0])
-        spanClass "display-time" cursor
+      | 1 when model.HasInitialState -> spanClass "display-time" "ex: 8h30_"
+      | 1 -> displayOperand model.Timestamps.[0]
       | _ ->
         let param1Class = "display-time frozen"
         let operandTimeClass = if not model.ShowResult then "display-time" else "display-time frozen"
 
         spanClass param1Class (string <| snd model.Timestamps.[0])
-        displaySeparator (
-          match model.Operation with
-          | Some Diff -> " -> "
-          | Some Sum -> " + "
-          | _ -> "")
-
+        displaySeparator (match model.Operation with Some Diff -> " -> " | Some Sum -> " + " | _ -> "")
         spanClass operandTimeClass (
-          if not model.ShowResult then
-            sprintf "%s%s" (fst model.Timestamps.[1]) cursor
-          else
-            sprintf "%O%s" (snd model.Timestamps.[1]) cursor)
+          if not model.ShowResult
+          then sprintf "%s%s" (fst model.Timestamps.[1]) cursor
+          else sprintf "%O%s" (snd model.Timestamps.[1]) cursor)
 
         // Display result
         if model.ShowResult then
@@ -101,10 +91,8 @@ let private contentLvl2Form (model: Model) dispatch =
           match model.Operation with
           | Some Diff ->
             let diff = if ts1 < ts2 then ts2.Subtract(ts1) else ts1.Subtract(ts2)
-            spanClass "display-time display-result" (sprintf "%dh%02d" diff.Hours diff.Minutes) // Δ
-          | Some Sum ->
-            let sum = ts1.Add(ts2)
-            spanClass "display-time display-result" (sprintf "%dh%02d" sum.Hours sum.Minutes)
+            displayResult diff
+          | Some Sum -> let sum = ts1.Add(ts2) in displayResult sum
           | _ -> ()
     ] |> List.singleton
 
@@ -113,34 +101,29 @@ let private contentLvl2Form (model: Model) dispatch =
 let emptyColumn = Column.column [] []
 
 let private contentLvl1Column (model: Model) dispatch =
-    [ Container.container []
-        [
-          // Title
-          if model.FormCount = 1 || model.ShowResult |> not then
-            Heading.h2 [ Heading.CustomClass "title" ] [ str "time calculator" ]
-          else
-            Heading.h2 [ Heading.CustomClass "title" ] [ str "results" ]
+  [ Container.container [] [
+      // Title
+      Heading.h2 [ Heading.CustomClass "title" ] [
+        if model.FormCount = 1 || not model.ShowResult
+        then str "time calculator"
+        else str "results"
+      ]
 
-          // Content
-          Columns.columns
-            [ Columns.CustomClass "has-text-centered"
-              Columns.IsVCentered ]
-            [
-              emptyColumn
-              Column.column
-                [ if model.FormCount = 1 then
-                    Column.Width(Screen.All, Column.IsFourFifths)
-                  else
-                    Column.Width(Screen.All, Column.Is9) ]
-                (contentLvl2Form model dispatch)
-              emptyColumn
-            ] ] ]
+      // Content
+      Columns.columns [ Columns.CustomClass "has-text-centered"; Columns.IsVCentered ] [
+        emptyColumn
+        Column.column
+          [ Column.Width(Screen.All, if model.FormCount = 1 then Column.IsFourFifths else Column.Is9) ]
+          (contentLvl2Form model dispatch)
+        emptyColumn
+      ]
+    ]
+  ]
 
 let private view model dispatch =
-    Hero.hero
-        [ Hero.IsFullHeight
-          Hero.IsMedium ] [ Hero.body [] (contentLvl1Column model dispatch) ]
-
+  Hero.hero [ Hero.IsFullHeight; Hero.IsMedium ] [
+    Hero.body [] (contentLvl1Column model dispatch)
+  ]
 
 
 open Elmish.Debug
