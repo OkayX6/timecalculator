@@ -1,42 +1,31 @@
 {
-  "name": "time-calc",
-  "version": "0.0.1",
-  "description": "Time calculator",
-  "main": "index.js",
-  "repository": "",
-  "author": "Denis Ok",
-  "license": "MIT",
   "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "dotnet tool restore && dotnet fable watch src --runFast vite",
+    "build": "dotnet tool restore && dotnet fable src --run vite build",
+    "clean": "dotnet fable clean src --yes",
+    "test": "cd tests && dotnet fable watch --run npx vite"
+  },
   "dependencies": {
-    "@babel/polyfill": "^7.8.7",
-    "@fortawesome/fontawesome-free": "^5.13.0",
     "@kennethormandy/react-fittext": "^0.6.0",
-    "core-js": "^3.6.4",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "@tailwindcss/vite": "^4.1.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^4.1.4"
   },
   "devDependencies": {
-    "@babel/core": "^7.9.0",
-    "@babel/plugin-external-helpers": "^7.8.3",
-    "@babel/plugin-transform-runtime": "^7.9.0",
-    "@babel/preset-env": "^7.9.0",
-    "autoprefixer": "^9.7.5",
-    "babel-loader": "^8.1.0",
-    "bulma": "^0.8.1",
-    "copy-webpack-plugin": "^5.1.1",
-    "css-loader": "^3.4.2",
-    "cssnano": "^4.1.10",
-    "fable-compiler": "^2.4.22",
-    "fable-loader": "^2.1.9",
-    "file-loader": "^6.0.0",
-    "html-webpack-plugin": "^4.0.4",
-    "mini-css-extract-plugin": "^0.9.0",
-    "node-sass": "^4.13.1",
-    "remotedev": "^0.2.9",
-    "sass-loader": "^8.0.2",
-    "style-loader": "^1.1.3",
-    "webpack": "^4.42.1",
-    "webpack-cli": "^3.3.11",
-    "webpack-dev-server": "^3.10.3"
+    "@vitejs/plugin-react": "^4.2.1",
+    "mocha": "^11.5.0",
+    "vite": "^5.1.4"
+  },
+  "overrides": {
+    "@kennethormandy/react-fittext": {
+      "react": ">=16.0.0",
+      "react-dom": ">=16.0.0"
+    }
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

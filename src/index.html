@@ -5,12 +5,36 @@
     <title>Time Calculator</title>
     <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta property="og:image" content="assets/favicon-32x32.png">
-    <link rel="shortcut icon" type="image/png" href="assets/favicon-32x32.png?" sizes="32x32" />
+    <link rel="shortcut icon" type="image/png" href="./img/favicon-32x32.png" sizes="32x32" />
+    <link rel="shortcut icon" type="image/png" href="./img/favicon-16x16.png" sizes="16x16" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@100..900&family=Merriweather:wght@400;700&family=Cascadia+Code:wght@100..900&display=swap"
+        rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'D-DIN';
+            src: url('./fonts/D-DIN.woff2') format('woff2'),
+                url('./fonts/D-DIN.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'D-DIN';
+            src: url('./fonts/D-DIN-Bold.woff2') format('woff2'),
+                url('./fonts/D-DIN-Bold.woff') format('woff');
+            font-weight: bold;
+            font-style: normal;
+        }
+    </style>
+    <link rel="stylesheet" href="./styles.css">
 </head>
 
 <body>
-    <div id="elmish-app"></div>
+    <div id="feliz-app"></div>
+    <script type="module" src="./Main.fs.js"></script>
 </body>
 
 </html>

@@ -1,8 +1,6 @@
 module TimeCalc.Input
 
-open Browser.Dom
 open Browser.Types
-open Elmish
 
 
 type CharMsg =
@@ -21,10 +19,12 @@ type CharMsg =
     | Digit c -> string c
     | _ -> ""
 
+let private mkDisposable f =
+  { new System.IDisposable with member _.Dispose() = f() }
 
-let documentEventListener initial =
+let documentEventListener =
   let sub dispatch =
-    document.addEventListener("keydown", fun e ->
+    Browser.Dom.document.addEventListener("keydown", fun e ->
       let ke: KeyboardEvent = downcast e
       match ke.key with
       | "Backspace" -> dispatch Backspace
@@ -39,9 +39,6 @@ let documentEventListener initial =
           -> Digit key.[0] |> dispatch
       | _ -> ()
     )
+    mkDisposable (fun () -> ())
 
-    document.addEventListener("visibilitychange", fun e ->
-      printfn "visibility change_"
-    )
-
-  Cmd.ofSub sub
+  sub
