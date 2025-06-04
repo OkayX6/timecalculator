@@ -154,7 +154,13 @@ let private EqualSign () =
 [<ReactComponent>]
 let private OperationResult (ts: TimeSpan, highlight: bool) =
   let className = if highlight then "text-accent" else ""
-  spanClass $"{className}" (sprintf "%dh%02d" ts.Hours ts.Minutes)
+  let timeRepr =
+    if ts.TotalSeconds >= 0 then
+      sprintf "%dh%02d" ts.Hours ts.Minutes
+    else 
+      sprintf "-%dh%02d" (-ts.Hours) (-ts.Minutes)
+
+  spanClass $"{className}" timeRepr
 
 
 
@@ -256,7 +262,12 @@ let private MultilineVisualizer (model: MultilineState) =
           ]
           match model.LastLine with
           | DisplayResult _ ->
-            prop.text (sprintf "total: %dh%02d" sumTimeSpans.Hours sumTimeSpans.Minutes)
+            let timeRepr =
+              if sumTimeSpans.TotalSeconds >= 0 then
+                sprintf "%dh%02d" sumTimeSpans.Hours sumTimeSpans.Minutes
+              else 
+                sprintf "-%dh%02d" (-sumTimeSpans.Hours) (-sumTimeSpans.Minutes)
+            prop.text $"total: {timeRepr}"
           | _ ->
             prop.text ("total: ...")
         ]
