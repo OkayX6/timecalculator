@@ -8,7 +8,6 @@
     "test": "cd tests && dotnet fable watch --run npx vite"
   },
   "dependencies": {
-    "@kennethormandy/react-fittext": "^0.6.0",
     "@tailwindcss/vite": "^4.1.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -18,12 +17,6 @@
     "@vitejs/plugin-react": "^4.2.1",
     "mocha": "^11.5.0",
     "vite": "^5.1.4"
-  },
-  "overrides": {
-    "@kennethormandy/react-fittext": {
-      "react": ">=16.0.0",
-      "react-dom": ">=16.0.0"
-    }
   },
   "engines": {
     "node": ">=18"
