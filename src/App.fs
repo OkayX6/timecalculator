@@ -11,7 +11,7 @@ open TimeCalc.Input
 [<Emit("(new Audio($0)).play();")>]
 let play (fileName: string) = jsNative
 
-let playKeyPress () = play "assets/keypress.wav"
+let playKeyPress () = play "keypress.wav"
 
 
 
