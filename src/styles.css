@@ -11,19 +11,3 @@
   --color-primary: #202a33;
   --color-accent: #ed4944;
 }
-
-@font-face {
-  font-family: "D-DIN Condensed";
-  src: url("assets/d-dincondensed-webfont.woff2") format("woff2"),
-    url("assets/d-dincondensed-webfont.woff") format("woff");
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "D-DIN Condensed";
-  src: url("assets/d-dincondensed-bold-webfont.woff2") format("woff2"),
-    url("assets/d-dincondensed-bold-webfont.woff") format("woff");
-  font-weight: bold;
-  font-style: normal;
-}
