@@ -196,6 +196,7 @@ docs/tools/FSharp.Formatting.svclog
 *.bak
 project.lock.json
 deploy/
+dist
 obj
 output
 bin
