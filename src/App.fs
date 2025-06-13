@@ -290,7 +290,7 @@ let Layout (models: MultilineState []) =
           let title = newTitle
 
           Html.h2 [
-            prop.className $"text-3xl {title} mb-8 lowercase pt-12 border-b-1 border-primary pb-4 w-full"
+            prop.className $"text-3xl {title} mb-8 lowercase pt-12 border-b-1 border-primary pb-4 w-full min-w-lg"
             prop.children [
               Html.text "Time Calculator"
             ]
